@@ -1,0 +1,1 @@
+import Title from"@/components/section-title";import ListingForm from"@/components/listing-form";export default function Add(){return <div className="wrap page"><Title eyebrow="COMMUNITY DIRECTORY" title="Add a business or property" description="Submit a shop, service or home listing. Sign in is required; all listings are reviewed before publication."/><ListingForm/></div>}
