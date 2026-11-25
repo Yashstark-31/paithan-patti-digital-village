@@ -1,41 +1,22 @@
+-- Run all SQL in Supabase SQL Editor.
 create extension if not exists pgcrypto;
-create table if not exists public.listings (
- id uuid primary key default gen_random_uuid(),
- owner_id uuid not null references auth.users(id) on delete cascade,
- listing_type text not null check(listing_type in ('business','house','service')),
- title text not null, description text, category text,
- photos text[] not null default '{}',
- public_phone text, public_whatsapp text, public_location text,
- exact_address text,
- allow_public_contact boolean not null default false,
- status text not null default 'pending' check(status in ('pending','approved','rejected','hidden')),
- created_at timestamptz not null default now(), updated_at timestamptz not null default now()
-);
-alter table public.listings enable row level security;
-create policy "owners read own listings" on public.listings for select to authenticated using(auth.uid()=owner_id);
-create policy "owners create own listings" on public.listings for insert to authenticated with check(auth.uid()=owner_id and status='pending');
-create policy "owners update own pending listings" on public.listings for update to authenticated using(auth.uid()=owner_id and status in ('pending','rejected')) with check(auth.uid()=owner_id);
-create or replace view public.approved_listings with (security_invoker=true) as
-select id,listing_type,title,description,category,photos,
-case when allow_public_contact then public_phone else null end as public_phone,
-case when allow_public_contact then public_whatsapp else null end as public_whatsapp,
-public_location,created_at from public.listings where status='approved';
-
--- Atomic site-wide page view counter: each POST increments once.
-create table if not exists public.site_stats(id integer primary key check(id=1),total_views bigint not null default 0);
-insert into public.site_stats(id,total_views) values(1,0) on conflict(id) do nothing;
-alter table public.site_stats enable row level security;
-create or replace function public.get_site_views() returns bigint language sql security definer set search_path=public as $$
- select total_views from public.site_stats where id=1;
-$$;
-create or replace function public.record_site_view() returns bigint language plpgsql security definer set search_path=public as $$
-declare n bigint;
-begin
- update public.site_stats set total_views=total_views+1 where id=1 returning total_views into n;
- return coalesce(n,0);
-end;
-$$;
-revoke all on function public.get_site_views() from public;
-revoke all on function public.record_site_view() from public;
-grant execute on function public.get_site_views() to anon,authenticated;
-grant execute on function public.record_site_view() to anon,authenticated;
+create table if not exists public.profiles(id uuid primary key references auth.users(id) on delete cascade,full_name text,role text not null default 'resident' check(role in('resident','admin')),created_at timestamptz default now());
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$begin insert into public.profiles(id,full_name) values(new.id,coalesce(new.raw_user_meta_data->>'full_name','Resident')) on conflict(id) do nothing;return new;end;$$;
+drop trigger if exists on_auth_user_created on auth.users;create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
+create table if not exists public.listings(id uuid primary key default gen_random_uuid(),owner_id uuid not null references auth.users(id) on delete cascade,listing_type text not null check(listing_type in('business','house','service')),title text not null,description text not null,category text,photos text[] not null default '{}',public_phone text,public_whatsapp text,public_location text,exact_address text,allow_public_contact boolean not null default false,is_for_sale boolean not null default false,price_note text,status text not null default 'pending' check(status in('pending','approved','rejected','hidden')),created_at timestamptz not null default now(),updated_at timestamptz not null default now());
+create table if not exists public.site_stats(id integer primary key check(id=1),total_views bigint not null default 0);insert into public.site_stats values(1,0) on conflict(id) do nothing;
+alter table public.profiles enable row level security;alter table public.listings enable row level security;alter table public.site_stats enable row level security;
+drop policy if exists "profiles read own" on public.profiles;create policy "profiles read own" on public.profiles for select to authenticated using(auth.uid()=id or exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
+drop policy if exists "listing owner or admin read" on public.listings;create policy "listing owner or admin read" on public.listings for select to authenticated using(auth.uid()=owner_id or exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
+drop policy if exists "owner create pending" on public.listings;create policy "owner create pending" on public.listings for insert to authenticated with check(auth.uid()=owner_id and status='pending');
+drop policy if exists "owner update own pending" on public.listings;create policy "owner update own pending" on public.listings for update to authenticated using(auth.uid()=owner_id and status in('pending','rejected')) with check(auth.uid()=owner_id and status='pending');
+drop policy if exists "admin manages listings" on public.listings;create policy "admin manages listings" on public.listings for all to authenticated using(exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin')) with check(exists(select 1 from public.profiles p where p.id=auth.uid() and p.role='admin'));
+drop policy if exists "public counter read" on public.site_stats;create policy "public counter read" on public.site_stats for select to anon,authenticated using(true);
+create or replace view public.approved_listings with(security_invoker=true) as select id,listing_type,title,description,category,photos,case when allow_public_contact then public_phone else null end public_phone,case when allow_public_contact then public_whatsapp else null end public_whatsapp,public_location,is_for_sale,price_note,created_at from public.listings where status='approved';
+create or replace function public.get_site_views() returns bigint language sql security definer set search_path=public as $$select total_views from public.site_stats where id=1;$$;
+create or replace function public.record_site_view() returns bigint language plpgsql security definer set search_path=public as $$declare n bigint;begin update public.site_stats set total_views=total_views+1 where id=1 returning total_views into n;return coalesce(n,0);end;$$;
+revoke all on function public.get_site_views() from public;revoke all on function public.record_site_view() from public;grant execute on function public.get_site_views() to anon,authenticated;grant execute on function public.record_site_view() to anon,authenticated;
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('listing-photos','listing-photos',true,5242880,array['image/jpeg','image/png','image/webp']) on conflict(id) do nothing;
+drop policy if exists "users upload own listing photos" on storage.objects;create policy "users upload own listing photos" on storage.objects for insert to authenticated with check(bucket_id='listing-photos' and (storage.foldername(name))[1]=auth.uid()::text);
+drop policy if exists "public read listing photos" on storage.objects;create policy "public read listing photos" on storage.objects for select to public using(bucket_id='listing-photos');
+-- Create your account, then set its UUID as admin: update public.profiles set role='admin' where id='YOUR_AUTH_USER_UUID';

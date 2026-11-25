@@ -1,22 +1,12 @@
-# Paithan Patti — The Digital Village
+# PAITHAN PATTI — THE DIGITAL VILLAGE
 
-Premium, mobile-first Next.js starter for the Paithan Patti community platform.
+Next.js 14 + Supabase community portal.
 
-## Phase 1
-- Emerald / gold landing page with responsive navigation
-- Village discovery, heritage, community gallery and contribution sections
-- Site-wide visit counter (increments on each page opening)
-- Supabase SQL schema for listings and atomic visit counting
-- Public listing view excludes exact residential addresses and owner IDs
+Included: responsive homepage/navigation, directory search, home listings, resident signup/login, personal dashboard, business/property submission with image upload, admin approval/rejection, village info framework, gallery/events/news pages, visitor counter, privacy-aware public listing view. Footer includes **BUILD BY YASH** and direct Telegram contact @Yash_help_robot.
 
-## Local development
-1. Install Node.js 20+.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and add your Supabase URL and anon key.
-4. Run `npm run dev`, then open http://localhost:3000.
+## Required production connection
+A real shared user database cannot be created without an owner-controlled Supabase project. Create a project at https://supabase.com, run `supabase/schema.sql` in SQL Editor, then set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel Project → Settings → Environment Variables. Redeploy. Never use the service-role key in browser environment variables.
 
-## Supabase setup
-Create a Supabase project and run `supabase/schema.sql` in SQL Editor. Add the two environment variables to Vercel before deployment.
+Create your account, copy its UUID from Supabase Authentication → Users, then run `update public.profiles set role='admin' where id='YOUR_AUTH_USER_UUID';` in SQL Editor. Listings require admin approval. Public house addresses are not displayed; contact details require opt-in.
 
-## Launch checklist
-This is a Phase 1 starter, not a completed production marketplace. Add authentication, server-side admin approval, CAPTCHA/rate limits, photo validation, moderation, reporting, audit logs and backups before public registration. Replace placeholders with real, permissioned village photos and locally verified facts. Keep exact house addresses private and publish contact details only with explicit opt-in. Verify census, PIN-code, panchayat and facility details against authoritative records.
+Village factual data is intentionally not invented: population, PIN code, panchayat, schools, health facilities and local history need source verification before publication. Add CAPTCHA/rate limiting, abuse reporting, audit logs, backups and privacy policy before opening public registration.
