@@ -1,22 +1,15 @@
-# Paithan Patti — The Digital Village
+# PAITHAN PATTI — THE DIGITAL VILLAGE
 
-Premium, mobile-first Next.js starter for the Paithan Patti community platform.
+Responsive Next.js community portal. Includes resident accounts, local business/service directory, house/property listings, listing image upload, owner dashboard, admin listing approval, admin-created news/events, village information, gallery landing page, visitor counter and a Telegram contact link. Footer credit: **BUILD BY YASH**.
 
-## Phase 1
-- Emerald / gold landing page with responsive navigation
-- Village discovery, heritage, community gallery and contribution sections
-- Site-wide visit counter (increments on each page opening)
-- Supabase SQL schema for listings and atomic visit counting
-- Public listing view excludes exact residential addresses and owner IDs
+## Required setup
+1. Create a Supabase project at https://supabase.com.
+2. Run all of `supabase/schema.sql` in Supabase SQL Editor.
+3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Vercel Project → Settings → Environment Variables for Production, Preview and Development. Redeploy.
+4. Create your own account. Copy its UUID from Supabase Authentication → Users, then run: `update public.profiles set role='admin' where id='YOUR_AUTH_USER_UUID';`
+5. Sign in at /account and manage submissions/posts at /admin.
+
+Never expose a Supabase service-role key in NEXT_PUBLIC variables. Exact residential addresses are not published; contact information requires consent. Verify village facts and sources before publication. Add CAPTCHA/rate limiting, abuse reporting, audit logs, backups and privacy/legal notices before broad public launch.
 
 ## Local development
-1. Install Node.js 20+.
-2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and add your Supabase URL and anon key.
-4. Run `npm run dev`, then open http://localhost:3000.
-
-## Supabase setup
-Create a Supabase project and run `supabase/schema.sql` in SQL Editor. Add the two environment variables to Vercel before deployment.
-
-## Launch checklist
-This is a Phase 1 starter, not a completed production marketplace. Add authentication, server-side admin approval, CAPTCHA/rate limits, photo validation, moderation, reporting, audit logs and backups before public registration. Replace placeholders with real, permissioned village photos and locally verified facts. Keep exact house addresses private and publish contact details only with explicit opt-in. Verify census, PIN-code, panchayat and facility details against authoritative records.
+`npm install`, copy `.env.example` to `.env.local`, fill Supabase URL/key, then `npm run dev`.
