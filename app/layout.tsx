@@ -1,11 +1,1 @@
-import type { Metadata } from "next";
-import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Paithan Patti | The Digital Village",
-  description: "Our Village. Our People. Our Identity. Our Future."
-};
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
-}
+import type{Metadata}from"next";import"./globals.css";import Header from "@/components/site-header";import Footer from "@/components/site-footer";export const metadata:Metadata={title:{default:"Paithan Patti — The Digital Village",template:"%s | Paithan Patti"},description:"Local businesses, homes, village information, memories, events and news for Paithan Patti, Gopalganj, Bihar."};export default function Root({children}:{children:React.ReactNode}){return <html lang="en"><body><Header/><main>{children}</main><Footer/></body></html>}
